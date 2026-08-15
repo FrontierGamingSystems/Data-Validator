@@ -1,0 +1,157 @@
+{
+ "published_at": "2026-08-15T03:21:45.559184Z",
+ "sessions": [
+  {
+   "key": "rwc-2026-08-04",
+   "hall": "rwc",
+   "date": "2026-08-04",
+   "time": "18:30",
+   "sales_lines": 89,
+   "value": 40755.0
+  },
+  {
+   "key": "rwc-2026-08-05",
+   "hall": "rwc",
+   "date": "2026-08-05",
+   "time": "18:30",
+   "sales_lines": 87,
+   "value": 42248.0
+  },
+  {
+   "key": "rwc-2026-08-06",
+   "hall": "rwc",
+   "date": "2026-08-06",
+   "time": "18:30",
+   "sales_lines": 90,
+   "value": 46194.0
+  },
+  {
+   "key": "sc-2026-08-07",
+   "hall": "sc",
+   "date": "2026-08-07",
+   "time": "18:00",
+   "sales_lines": 59,
+   "value": 37280.0
+  },
+  {
+   "key": "sc-2026-08-07",
+   "hall": "sc",
+   "date": "2026-08-07",
+   "time": "18:30",
+   "sales_lines": 34,
+   "value": 43271.0
+  },
+  {
+   "key": "sc-2026-08-08-AM",
+   "hall": "sc",
+   "date": "2026-08-08",
+   "time": "13:00",
+   "sales_lines": 96,
+   "value": 77761.0
+  },
+  {
+   "key": "sc-2026-08-08-PM",
+   "hall": "sc",
+   "date": "2026-08-08",
+   "time": "18:30",
+   "sales_lines": 93,
+   "value": 67834.0
+  },
+  {
+   "key": "sc-2026-08-09-AM",
+   "hall": "sc",
+   "date": "2026-08-09",
+   "time": "13:00",
+   "sales_lines": 104,
+   "value": 112787.0
+  },
+  {
+   "key": "sc-2026-08-09-PM",
+   "hall": "sc",
+   "date": "2026-08-09",
+   "time": "18:30",
+   "sales_lines": 44,
+   "value": 17381.0
+  },
+  {
+   "key": "sc-2026-08-10",
+   "hall": "sc",
+   "date": "2026-08-10",
+   "time": "18:30",
+   "sales_lines": 119,
+   "value": 85345.0
+  },
+  {
+   "key": "rwc-2026-08-11",
+   "hall": "rwc",
+   "date": "2026-08-11",
+   "time": "18:30",
+   "sales_lines": 91,
+   "value": 38619.0
+  },
+  {
+   "key": "rwc-2026-08-12",
+   "hall": "rwc",
+   "date": "2026-08-12",
+   "time": "18:30",
+   "sales_lines": 86,
+   "value": 40265.0
+  },
+  {
+   "key": "rwc-2026-08-13",
+   "hall": "rwc",
+   "date": "2026-08-13",
+   "time": "18:30",
+   "sales_lines": 86,
+   "value": 38886.0
+  },
+  {
+   "key": "sc-2026-08-14",
+   "hall": "sc",
+   "date": "2026-08-14",
+   "time": "18:30",
+   "sales_lines": 88,
+   "value": 65608.0
+  },
+  {
+   "key": "sc-2026-08-15-AM",
+   "hall": "sc",
+   "date": "2026-08-15",
+   "time": "13:00",
+   "sales_lines": 29,
+   "value": 22955.0
+  },
+  {
+   "key": "sc-2026-08-15-PM",
+   "hall": "sc",
+   "date": "2026-08-15",
+   "time": "18:30",
+   "sales_lines": 16,
+   "value": 2300.0
+  },
+  {
+   "key": "sc-2026-08-16-AM",
+   "hall": "sc",
+   "date": "2026-08-16",
+   "time": "13:00",
+   "sales_lines": 24,
+   "value": 6785.0
+  },
+  {
+   "key": "sc-2026-08-16-PM",
+   "hall": "sc",
+   "date": "2026-08-16",
+   "time": "18:30",
+   "sales_lines": 14,
+   "value": 1070.0
+  },
+  {
+   "key": "sc-2026-08-17",
+   "hall": "sc",
+   "date": "2026-08-17",
+   "time": "18:30",
+   "sales_lines": 14,
+   "value": 2120.0
+  }
+ ]
+}
