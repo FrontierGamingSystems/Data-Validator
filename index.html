@@ -278,9 +278,10 @@ const S={
  // The POS feed marks every transaction 'cash' — on 8-14 that included $16,652
  // at a drawer that closed with $7,694. payment_method is not trustworthy, so
  // credit is keyed here the way the workbook has always done it.
- pos:(DATA.cash||[]).map(c=>({station:c.station, cash:+c.cash_in||0,
-      start:+c.start_cash||0, credit:+c.credit_in||0,
-      rung:+c.rung||0, recorded:!!c.credit_recorded})),
+ pos:(DATA.cash||[]).map(c=>({station:c.station, cash:numOf(c.cash_in),
+      start:numOf(c.start_cash), credit:numOf(c.credit_in),
+      rung:numOf(c.rung), recorded:!!c.credit_recorded,
+      src:c.credit_source||'', shifts:numOf(c.shifts)||1, unclosed:numOf(c.unclosed)})),
  // Tonight-only flash payouts. Turning a category on replaces that figure on
  // every box for this session; the catalogue itself is untouched.
  flashAdj:{caller:{on:false,v:0},large:{on:false,v:0},small:{on:false,v:0},why:''},
@@ -1009,6 +1010,22 @@ const RULES=[
   msg:()=>'The deposit count is <b>completely empty</b> — no denomination entered. '
         +'A blank count books the whole expected balance as a shortage.'},
 
+ {id:'POS_CREDIT_NOT_COUNTED', station:'pos', level:'warn',
+  name:'Every till recorded a counted credit total',
+  origin:'Credit used to be back-solved from what was rung less what stayed in the drawer when a till recorded none. That forces over/(short) to exactly zero and invented $5,813 at Santa Clara sc02 on 15 August. Nothing is inferred now, so a till with no counted figure shows zero and must be keyed off the terminal report.',
+  fails:()=>(S.pos||[]).some(c=>c.src && c.src!=='counted at close'),
+  msg:()=>(S.pos||[]).filter(c=>c.src&&c.src!=='counted at close')
+        .map(c=>`<b>${esc(c.station)}</b> (${esc(c.src)})`).join(', ')
+        + ' did not record a counted credit total. Key it from the terminal report.'},
+
+ {id:'POS_SHIFT_NEVER_CLOSED', station:'pos', level:'warn',
+  name:'Every till was closed',
+  origin:'A shift left open has no closing count, so its cash reads as zero and the station looks short by whatever was in the drawer.',
+  fails:()=>(S.pos||[]).some(c=>numOf(c.unclosed)>0),
+  msg:()=>(S.pos||[]).filter(c=>numOf(c.unclosed)>0)
+        .map(c=>`<b>${esc(c.station)}</b> has ${numOf(c.unclosed)} shift(s) never closed`).join(', ')
+        + '. Their cash counts as zero until they are closed on the POS.'},
+
  {id:'CARD_ODD_AMOUNT', station:'runners', level:'block',
   name:'$1,500 cards come in whole units',
   origin:'RWC 8-11: $2,380 of credit card takings sat in the card column. The runner still '
@@ -1245,9 +1262,10 @@ function freshState(sess){
   S.manual={online:false,pos:false}; S.gameForm=null; S.catQ='';
   S.resolution='';
   S.cashCount.forEach(c=>c.q=0);
-  S.pos=(DATA.cash||[]).map(c=>({station:c.station,cash:+c.cash_in||0,
-        start:+c.start_cash||0,credit:+c.credit_in||0,
-        rung:+c.rung||0,recorded:!!c.credit_recorded}));
+  S.pos=(DATA.cash||[]).map(c=>({station:c.station,cash:numOf(c.cash_in),
+        start:numOf(c.start_cash),credit:numOf(c.credit_in),
+        rung:numOf(c.rung),recorded:!!c.credit_recorded,
+        src:c.credit_source||'', shifts:numOf(c.shifts)||1, unclosed:numOf(c.unclosed)}));
   (S.pm.fixed||[]).forEach(x=>{ if(nrm(x.n)==='rwb') x.v=0; });   // never carries in
   /* Zeroed here, then seeded from the previous session at this hall by
      startSession. A machine with no history opens at 0, as before. */
@@ -1509,14 +1527,20 @@ function vSystem(ch){
       <div class="v">${num(ppl)}</div><div class="d">${pplNote}</div></div>
   </div>`;
   const drawers = isPos ? `<div class="card"><h3>Drawers <span class="pill man">counted at close</span></h3>
-    <p class="ch">Cash, float and credit come from the POS close. Where the POS <b>did not record
-      the card split</b> the credit shown is inferred from what was rung less what stayed in the
-      drawer — check those against the terminal report before approving.</p>
+    <p class="ch">Cash, float and credit come from the POS close. <b>Credit is the figure counted
+      at the terminal</b> when the till was closed. Nothing is inferred — a drawer with no credit
+      recorded shows zero and says so, rather than being back-solved to make the line balance.</p>
     <table><thead><tr><th class="l">Station</th><th>Sales rung</th><th>Cash counted</th><th>Start float</th><th>Credit taken</th><th>Over/(Short)</th></tr></thead><tbody>
     ${(S.pos||[]).map((c,i)=>{
       const sold=DATA.sales.filter(s=>s.channel==='pos'&&s.station_code===c.station).reduce((a,s)=>a+numOf(s.value),0);
       const os=(+c.cash||0)+(+c.credit||0)-(+c.start||0)-sold;
-      return `<tr><td class="l">${c.station}${c.recorded?'':' <span class="pill man">credit inferred</span>'}</td><td>${money(sold)}</td>
+      const src = c.src==='counted at close' ? ''
+                : (c.src==='terminal card total'
+                    ? ' <span class="pill man" title="no counted figure — using the terminal\'s card total">terminal total</span>'
+                    : ' <span class="pill man" title="this till recorded no credit at all">no credit recorded</span>');
+      const many = (c.shifts||1)>1 ? ` <span class="pill db">${c.shifts} shifts</span>` : '';
+      const open = c.unclosed ? ` <span class="pill" style="background:var(--fail-soft);color:var(--fail)">${c.unclosed} never closed</span>` : '';
+      return `<tr><td class="l">${c.station}${src}${many}${open}</td><td>${money(sold)}</td>
         <td><input value="${blank(c.cash)}" placeholder="0" oninput="S.pos[${i}].cash=+this.value||0;touch('pos');render()"></td>
         <td><input value="${blank(c.start)}" placeholder="0" oninput="S.pos[${i}].start=+this.value||0;touch('pos');render()"></td>
         <td><input value="${blank(c.credit)}" placeholder="0" oninput="S.pos[${i}].credit=+this.value||0;touch('pos');render()"></td>
