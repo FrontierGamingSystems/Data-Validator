@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict');const {createApp}=require('./app-harness');const a=createApp();
+a.run(`S.session={hall:'rwc',date:'2026-09-01',weekday:'Tuesday',time:'18:30',slot:'Tuesday'};freshState(S.session);
+ globalThis.row=JSON.parse(JSON.stringify(sessionRow()));row.ecom_session_ids=['correct-a','correct-b'];
+ DATA.session.ecom_session_ids=['other-night'];applySnapshot(rowToSnapshot(row));`);
+assert.deepEqual(a.json('sessionRow().ecom_session_ids'),['correct-a','correct-b']);
+assert.deepEqual(a.json('snapshot().session.ecom_session_ids'),['correct-a','correct-b']);
+a.run('saveNow();globalThis.local=readLocalSnapshot(S.session);DATA.session.ecom_session_ids=["wrong"];applySnapshot(local)');
+assert.deepEqual(a.json('sessionRow().ecom_session_ids'),['correct-a','correct-b'],'offline recovery retains both merged sales records');
+a.run(`globalThis.old=JSON.parse(JSON.stringify(snapshot()));delete old.session.ecom_session_ids;old.session.ecom='legacy-id';applySnapshot(old);`);
+assert.deepEqual(a.json('sessionRow().ecom_session_ids'),['legacy-id']);
+a.run(`row.ecom_session_ids=[];applySnapshot(rowToSnapshot(row));`);
+assert.deepEqual(a.json('sessionRow().ecom_session_ids'),[],'a night without sales links must not inherit any');
+a.run(`delete old.session.ecom;delete old.session.ecom_session_ids;applySnapshot(old);`);
+assert.deepEqual(a.json('sessionRow().ecom_session_ids'),[],'older records without links stay empty');
+console.log('PASS sales links: database restore, save, offline recovery, merged sales records and older files');
