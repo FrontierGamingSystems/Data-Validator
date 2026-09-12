@@ -842,7 +842,12 @@ function snapshot(){
 /* Kept only so a browser that goes offline mid-count does not lose the last
    few keystrokes. The database is the record; this is a crash mat. */
 const ACK_CONTENT=new Map(), LOCAL_STATUS=new Map();
-function localSessionKey(s){return 'recon:session:'+sessionIdentity(s);}
+// A new document gets a new owner, including reloads and duplicated tabs.
+// sessionStorage IDs are unsuitable here: browsers copy them when duplicating a tab.
+const LOCAL_CLIENT_ID = typeof crypto!=='undefined' && crypto.randomUUID
+  ? crypto.randomUUID() : Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+function localSessionKey(s){return 'recon:session:'+sessionIdentity(s)+':'
+  +encodeURIComponent((AUTH&&AUTH.email)||'')+':'+LOCAL_CLIENT_ID;}
 function contentFingerprint(row){
   const copy=JSON.parse(JSON.stringify(row));
   delete copy.updated_by; delete copy.id; delete copy.updated_at; delete copy.closed_at;
@@ -867,7 +872,10 @@ function readLocalSnapshot(sess){
       let snap;try{snap=JSON.parse(localStorage.getItem(key)||'null');}catch(e){continue;}
       if(!snap || !snap.state || !snap.session || sessionIdentity(snap.session)!==sessionIdentity(sess)) continue;
       if(snap.sync && snap.sync.email && AUTH && snap.sync.email!==AUTH.email) continue;
-      if(!latest || String(snap.savedAt)>String(latest.savedAt)) latest=snap;
+      // A newer clean backup must not hide unsaved entries in another tab.
+      const dirty=!!(snap.sync&&snap.sync.dirty), previousDirty=!!(latest&&latest.sync&&latest.sync.dirty);
+      if(!latest || (dirty&&!previousDirty)
+        || (dirty===previousDirty && String(snap.savedAt)>String(latest.savedAt))) latest=snap;
     }
     return latest;
   }catch(e){return null;}
@@ -878,7 +886,7 @@ function saveNow(){
   try{
     compute();
     const snap=snapshot(), fingerprint=contentFingerprint(sessionRow());
-    snap.sync={base:REMOTE_BASES.get(key)||null,email:AUTH&&AUTH.email,
+    snap.sync={base:REMOTE_BASES.get(key)||null,email:AUTH&&AUTH.email,owner:LOCAL_CLIENT_ID,
       needsCreate:sessionNeedsCreate,fingerprint,dirty:ACK_CONTENT.get(key)!==fingerprint};
     localStorage.setItem(localSessionKey(S.session),JSON.stringify(snap));
     LOCAL_STATUS.set(key,{ok:true,at:new Date()});
@@ -889,7 +897,7 @@ function acknowledgeLocal(job,saved){
   ACK_CONTENT.set(job.key,job.fingerprint);
   try{
     const key=localSessionKey(job.session), snap=JSON.parse(localStorage.getItem(key)||'null');
-    if(snap && snap.sync && snap.sync.email===job.email){
+    if(snap && snap.sync && snap.sync.email===job.email && snap.sync.owner===LOCAL_CLIENT_ID){
       snap.sync.base={id:saved.id,updated_at:saved.updated_at};
       snap.sync.needsCreate=false;
       snap.sync.dirty=snap.sync.fingerprint!==job.fingerprint;
