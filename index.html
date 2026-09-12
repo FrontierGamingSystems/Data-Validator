@@ -500,9 +500,16 @@ function fxPreSoldValue(f){
   if(!n) return 0;
   const key = fxSaleKey(f && f.name);
   if(!key) return n;
-  const v = (DATA.sales||[]).reduce((a,s)=>
-    a + ((s.channel==='online' && fxSaleKey(s.item_name)===key) ? numOf(s.value) : 0), 0);
-  return v > 0 ? v : n;
+  // Older feeds classify scheduled games such as Diamonds & Emeralds as
+  // Strips (the publisher's default label). Their sales are still flash sales.
+  // Prefer an explicit Flash match when available; otherwise accept the legacy
+  // Strips label for this scheduled game. Never borrow a POS or paper amount.
+  const matches = (DATA.sales||[]).filter(s=>s.channel==='online' && fxSaleKey(s.item_name)===key);
+  const category=s=>String(s.category||'').trim().toLowerCase();
+  const explicit=matches.filter(s=>category(s)==='flash');
+  const rows=explicit.length ? explicit : matches.filter(s=>category(s)==='strips');
+  // A matched zero is meaningful (for example, sales net of refunds).
+  return rows.length ? rows.reduce((a,s)=>a+numOf(s.value),0) : n;
 }
 
 /* ============ derived totals (shared across stations) ============ */
