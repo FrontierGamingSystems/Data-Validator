@@ -422,6 +422,9 @@ const S={
  resolution:''
 };
 
+// Immutable shape for loading a saved night; freshState clears the example amounts.
+const SESSION_DEFAULTS = JSON.stringify(S);
+
 /* The pre-filled payout games, PER HALL AND PER SLOT. These used to be one
    list — Redwood City's — captured off the initial state and handed to Santa
    Clara every session, so four of the six figures were wrong at Santa Clara on
@@ -991,24 +994,35 @@ async function resumeSession(hall,date,time,useDatabase=false){
   finally{sessionLoading=false;render();}
 }
 
+function mergeSavedState(target, saved){
+  for(const [key,value] of Object.entries(saved)){
+    if(key==='__proto__' || key==='constructor' || key==='prototype') continue;
+    if(value && typeof value==='object' && !Array.isArray(value)
+      && target[key] && typeof target[key]==='object' && !Array.isArray(target[key]))
+      mergeSavedState(target[key],value);
+    else target[key]=value;
+  }
+}
 function applySnapshot(snap){
   if(!snap||!snap.state) return false;
-  // The ingested figures travel WITH the session. Without this a file opened on
-  // a different build showed that build's baked-in sales under this session's
-  // name — which is exactly how SC 8-14 came to display RWC 8-11 items.
-  if(Array.isArray(snap.sales)){
-    DATA.sales.length=0; snap.sales.forEach(x=>DATA.sales.push(x));
-  }
-  if(Array.isArray(snap.cash)){
-    DATA.cash.length=0; snap.cash.forEach(x=>DATA.cash.push(x));
-  }
-  if(snap.counts) Object.assign(COUNTS, snap.counts);
-  if(snap.session){
-    DATA.session.hall_id      = snap.session.hall || DATA.session.hall_id;
-    DATA.session.session_date = snap.session.date || DATA.session.session_date;
-    DATA.session.weekday      = snap.session.weekday || DATA.session.weekday;
-  }
-  Object.keys(snap.state).forEach(k=>{ S[k]=snap.state[k]; });
+  // A caller may pass snapshot(), whose arrays still refer to the current state.
+  // Copy first, then replace the whole night rather than filling the old one in.
+  snap=JSON.parse(JSON.stringify(snap));
+  const sess=snap.state.session||snap.session||{};
+  DATA.sales.length=0; (snap.sales||[]).forEach(x=>DATA.sales.push(x));
+  DATA.cash.length=0; (snap.cash||[]).forEach(x=>DATA.cash.push(x));
+  DATA.flash.length=0;
+  Object.keys(COUNTS).forEach(k=>delete COUNTS[k]);
+  Object.assign(COUNTS,snap.counts||{});
+  DATA.session={hall_id:sess.hall,session_date:sess.date,weekday:sess.weekday};
+  Object.keys(S).forEach(k=>delete S[k]);
+  Object.assign(S,JSON.parse(SESSION_DEFAULTS));
+  S.session=sess; S.strip=[];
+  NIGHT_ROSTER=null;
+  freshState(sess);
+  // Missing fields, including nested ones in older records, use clean defaults.
+  // Saved arrays and amounts belong to this night and are restored unchanged.
+  mergeSavedState(S,snap.state);
   // older files predate these
   S.flashAdj = S.flashAdj || {caller:{on:false,v:0},large:{on:false,v:0},small:{on:false,v:0},why:''};
   S.manual   = S.manual   || {online:false,pos:false};
