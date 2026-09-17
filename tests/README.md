@@ -9,6 +9,8 @@ node tests/session-restore.js
 node tests/sales-links.js
 python -m pip install openpyxl
 python tests/flash-export.py
+node tests/unclaimed-flash.js
+python tests/unclaimed-export.py
 ```
 
 - The app checks need Node.js. The spreadsheet check also needs Python and openpyxl.
@@ -19,3 +21,5 @@ python tests/flash-export.py
 - The remaining checks cover opening older nights without carrying over money, preserving current saved entries, and retaining each night's original sales links.
 
 Build 264 contains five separately recorded fixes. The main app is still `index.html`; the test files are for checking changes and do not need to be loaded by the website.
+
+Build 266 automatically deducts unclaimed flash from payouts with either a positive or negative entry. The two unclaimed checks cover both halls, zero amounts, cents, reopening saved entries, the Paymaster display, the exported Summary and Paymaster totals, and preservation of other adjustment signs.
